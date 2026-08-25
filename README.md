@@ -21,25 +21,30 @@ The app redirects `/` to `/login`.
 
 ## Scripts
 
-| Script                 | What it does                                          |
-| ---------------------- | ----------------------------------------------------- |
-| `npm run dev`          | Start the Vite dev server on port 5173                |
-| `npm run build`        | Typecheck, then produce a production build in `dist/` |
-| `npm run preview`      | Serve the production build locally                    |
-| `npm run typecheck`    | `tsc --noEmit` over the project                       |
-| `npm run lint`         | ESLint over the project                               |
-| `npm run lint:fix`     | ESLint with `--fix`                                   |
-| `npm run format`       | Prettier write                                        |
-| `npm run format:check` | Prettier check (used by CI)                           |
+| Script                  | What it does                                          |
+| ----------------------- | ----------------------------------------------------- |
+| `npm run dev`           | Start the Vite dev server on port 5173                |
+| `npm run build`         | Typecheck, then produce a production build in `dist/` |
+| `npm run preview`       | Serve the production build locally                    |
+| `npm run typecheck`     | `tsc --noEmit` over the project                       |
+| `npm run lint`          | ESLint over the project                               |
+| `npm run lint:fix`      | ESLint with `--fix`                                   |
+| `npm run format`        | Prettier write                                        |
+| `npm run format:check`  | Prettier check (used by CI)                           |
+| `npm test`              | Unit and integration tests (Vitest)                   |
+| `npm run test:watch`    | Vitest in watch mode                                  |
+| `npm run test:coverage` | Tests with coverage; fails below 80% on features/auth |
+| `npm run test:e2e`      | Playwright end-to-end suite against the mock backend  |
 
 ## Environment variables
 
 Copy `.env.example` to `.env` and adjust. Vite only exposes variables prefixed
 with `VITE_`.
 
-| Variable            | Description                        | Example                     |
-| ------------------- | ---------------------------------- | --------------------------- |
-| `VITE_API_BASE_URL` | Base URL of the authentication API | `http://localhost:8080/api` |
+| Variable                | Description                               | Example                     |
+| ----------------------- | ----------------------------------------- | --------------------------- |
+| `VITE_API_BASE_URL`     | Base URL of the authentication API        | `http://localhost:8080/api` |
+| `VITE_ENABLE_API_MOCKS` | `true` starts the MSW mock backend in dev | `false`                     |
 
 > **Never put secrets in a `VITE_` variable.** Everything prefixed with `VITE_` is
 > inlined into the client bundle in plain text and is readable by anyone who loads
@@ -74,10 +79,43 @@ components.
 - **husky + lint-staged** run ESLint `--fix` and Prettier on staged files before
   every commit.
 
+## Testing
+
+| Layer       | Tooling                        | Location                                   |
+| ----------- | ------------------------------ | ------------------------------------------ |
+| Unit        | Vitest                         | `src/**/*.test.ts(x)`                      |
+| Integration | Vitest + Testing Library + MSW | `src/features/auth/*.integration.test.tsx` |
+| End-to-end  | Playwright + MSW               | `e2e/`                                     |
+
+Integration tests render the real route table and the real `AuthProvider`, so the
+guards and session restore are exercised rather than stubbed. The mock backend
+lives in `src/mocks/` and is shared by the integration and E2E suites.
+
+Coverage is gated at **80% statements on `src/features/auth/`**. Run
+`npm run test:coverage` to check it.
+
+### Working against the mock backend
+
+Set `VITE_ENABLE_API_MOCKS=true` and run `npm run dev`, then sign in with
+`user@example.com` / `password123`. `locked@`, `throttled@` and
+`boom@example.com` trigger the 423, 429 and 500 paths.
+
+## Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md). `netlify.toml` and `vercel.json` carry the
+SPA rewrite and the security headers (CSP, HSTS, `nosniff`, `Referrer-Policy`,
+`X-Frame-Options`, `Permissions-Policy`). No environment has been provisioned
+yet.
+
 ## CI
 
 `.github/workflows/ci.yml` runs install -> lint -> format check -> typecheck ->
-build on every pull request into `main` and on pushes to `main`.
+test with coverage -> build, plus a separate Playwright job.
+
+**Automatic runs are currently disabled**: the workflow is `workflow_dispatch`
+only, so nothing fires on pushes or pull requests. The original triggers are
+preserved in a comment at the top of the file. Until they are restored, run
+`npm run lint && npm run typecheck && npm test && npm run build` before pushing.
 
 ## Roadmap
 
