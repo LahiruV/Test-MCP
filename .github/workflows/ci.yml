@@ -1,10 +1,14 @@
 name: CI
 
+# Manual trigger only - automatic runs on pull_request/push are disabled by
+# request. To re-enable, restore:
+#   on:
+#     pull_request:
+#       branches: [main]
+#     push:
+#       branches: [main]
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   verify:

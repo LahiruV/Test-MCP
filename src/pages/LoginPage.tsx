@@ -1,21 +1,27 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Alert } from '../components/Alert';
 import { Button } from '../components/Button';
 import { Checkbox } from '../components/Checkbox';
 import { Input } from '../components/Input';
 import { PasswordInput } from '../components/PasswordInput';
-import { authMessages } from '../features/auth/messages';
+import { useAuth } from '../features/auth/useAuth';
 import { useLoginForm } from '../features/auth/useLoginForm';
-
-/**
- * Placeholder sign-in call. MCPJ-4 replaces this with POST /auth/login.
- */
-async function submitLogin(): Promise<void> {
-  throw new Error(authMessages.form.notImplemented);
-}
+import { resolveNextPath } from '../lib/nextPath';
 
 export function LoginPage() {
-  const { form, submit, bannerMessage, isLocked } = useLoginForm({ onSubmit: submitLogin });
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { form, submit, bannerMessage, isLocked } = useLoginForm({
+    onSubmit: async (values) => {
+      await login(values);
+      // Only same-origin paths survive resolveNextPath, so this cannot be
+      // turned into an open redirect by a crafted ?next=.
+      void navigate(resolveNextPath(location.search), { replace: true });
+    },
+  });
+
   const {
     register,
     formState: { errors, isSubmitting },

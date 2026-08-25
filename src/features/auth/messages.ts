@@ -13,9 +13,11 @@ export const authMessages = {
   },
   form: {
     generic: 'Something went wrong. Please try again.',
+    // Deliberately vague: never reveal whether the account exists.
     invalidCredentials: 'Email or password is incorrect',
+    accountLocked: 'This account is locked. Contact support to unlock it.',
+    tooManyRequests: 'Too many attempts. Wait a moment and try again.',
     cooldown: (seconds: number) =>
       `Too many failed attempts. Try again in ${seconds} second${seconds === 1 ? '' : 's'}.`,
-    notImplemented: 'Sign-in is not wired up yet - the API integration lands in MCPJ-4.',
   },
 } as const;
