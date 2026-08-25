@@ -1,0 +1,3 @@
+# Normalise to LF in the repository and in working copies, so Windows
+# checkouts stop reporting files as modified purely on line endings.
+* text=auto eol=lf
