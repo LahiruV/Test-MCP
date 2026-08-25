@@ -22,11 +22,25 @@ const MOCK_USER: AuthUser = {
   name: 'Test User',
 };
 
-// Stands in for the httpOnly session cookie a real backend would set.
-let signedIn = false;
+const SESSION_COOKIE = 'mock_session';
+
+/**
+ * Stands in for the httpOnly session cookie a real backend would set. It has
+ * to be a real cookie rather than a module variable, or the mock session would
+ * not survive a page reload and could not represent session restore.
+ */
+function isSignedIn(): boolean {
+  return document.cookie.includes(`${SESSION_COOKIE}=1`);
+}
+
+function setSignedIn(value: boolean): void {
+  document.cookie = value
+    ? `${SESSION_COOKIE}=1; path=/; SameSite=Lax`
+    : `${SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+}
 
 export function resetMockSession(): void {
-  signedIn = false;
+  setSignedIn(false);
 }
 
 type LoginBody = {
@@ -55,20 +69,22 @@ export const handlers = [
       return HttpResponse.json({ code: 'INVALID_CREDENTIALS' }, { status: 401 });
     }
 
-    signedIn = true;
+    setSignedIn(true);
     return HttpResponse.json(MOCK_USER);
   }),
 
   http.get(`${BASE_URL}/auth/me`, () =>
-    signedIn ? HttpResponse.json(MOCK_USER) : new HttpResponse(null, { status: 401 }),
+    isSignedIn() ? HttpResponse.json(MOCK_USER) : new HttpResponse(null, { status: 401 }),
   ),
 
   http.post(`${BASE_URL}/auth/refresh`, () =>
-    signedIn ? new HttpResponse(null, { status: 204 }) : new HttpResponse(null, { status: 401 }),
+    isSignedIn()
+      ? new HttpResponse(null, { status: 204 })
+      : new HttpResponse(null, { status: 401 }),
   ),
 
   http.post(`${BASE_URL}/auth/logout`, () => {
-    signedIn = false;
+    setSignedIn(false);
     return new HttpResponse(null, { status: 204 });
   }),
 ];

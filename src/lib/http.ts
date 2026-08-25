@@ -61,6 +61,11 @@ async function readBody(response: Response): Promise<unknown> {
   }
 }
 
+function isJsonResponse(response: Response): boolean {
+  const contentType = response.headers.get('content-type') ?? '';
+  return contentType.includes('application/json');
+}
+
 function toApiError(status: number, body: unknown): ApiError {
   if (body && typeof body === 'object') {
     const payload = body as { message?: unknown; code?: unknown; fieldErrors?: unknown };
@@ -118,7 +123,16 @@ async function send<T>(path: string, options: RequestOptions = {}): Promise<T> {
   }
 
   if (response.ok) {
-    return (await readBody(response)) as T;
+    const body = await readBody(response);
+
+    // A misrouted endpoint hitting an SPA fallback answers 200 with HTML.
+    // Accepting that would let a deploy or proxy mistake read as a valid
+    // session, so anything that is not JSON is a failure.
+    if (body !== null && !isJsonResponse(response)) {
+      throw new ApiError(response.status, 'Unexpected response from the server.');
+    }
+
+    return body as T;
   }
 
   throw toApiError(response.status, await readBody(response));
